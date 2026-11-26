@@ -33,7 +33,13 @@ object Rules {
             e.putString(pkg, "${r.mode}|${r.from}|${r.to}|${r.allowUntil}")
         }
         e.apply()
+        NetBlock.sync(ctx)
     }
+
+    fun ruled(ctx: Context): Set<String> = sp(ctx).all.keys.toSet()
+
+    fun netBlock(ctx: Context) = cfg(ctx).getBoolean("net_block", false)
+    fun setNet(ctx: Context, v: Boolean) = cfg(ctx).edit().putBoolean("net_block", v).apply()
 
     fun inWindow(minute: Int, from: Int, to: Int): Boolean {
         if (from == to) return true

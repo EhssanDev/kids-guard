@@ -14,6 +14,7 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
+import android.net.VpnService
 import android.os.Bundle
 import android.provider.Settings
 import android.text.Editable
@@ -252,6 +253,30 @@ class MainActivity : Activity() {
         }
         statusBox.addView(c2, lin(MATCH, WRAP).also { it.bottomMargin = dp(10) })
 
+        val net = Rules.netBlock(this)
+        val running = net && NetBlockService.active
+        val c5 = cardBox()
+        val nr = LinearLayout(this)
+        nr.orientation = LinearLayout.HORIZONTAL
+        nr.gravity = Gravity.CENTER_VERTICAL
+        val ncol = LinearLayout(this)
+        ncol.orientation = LinearLayout.VERTICAL
+        ncol.addView(label("قطع الإنترنت عن التطبيقات المحظورة", 16f, textMain, true))
+        ncol.addView(
+            label(
+                if (running) "يعمل الآن" else if (net) "مفعّل، بانتظار التشغيل" else "متوقف",
+                12f, if (running) green else textSub
+            )
+        )
+        ncol.addView(label("يستخدم VPN محلياً على الجوال فقط، ولا يرسل أي بيانات لأي جهة.", 12f, textSub))
+        nr.addView(ncol, lin(0, WRAP, 1f))
+        val nsw = Switch(this)
+        nsw.isChecked = net
+        nsw.setOnCheckedChangeListener { _, v -> setNetBlock(v) }
+        nr.addView(nsw)
+        c5.addView(nr)
+        statusBox.addView(c5, lin(MATCH, WRAP).also { it.bottomMargin = dp(10) })
+
         val c3 = cardBox()
         val sw = Switch(this)
         sw.isChecked = Rules.protect(this)
@@ -275,6 +300,42 @@ class MainActivity : Activity() {
         c4.addView(label("تغيير رمز ولي الأمر", 16f, textMain, true))
         c4.setOnClickListener { changePin() }
         statusBox.addView(c4, lin(MATCH, WRAP).also { it.bottomMargin = dp(6) })
+    }
+
+    private fun setNetBlock(v: Boolean) {
+        if (!v) {
+            Rules.setNet(this, false)
+            stopService(Intent(this, NetBlockService::class.java))
+            list.postDelayed({ refreshStatus() }, 300)
+            return
+        }
+        val i = VpnService.prepare(this)
+        if (i == null) {
+            Rules.setNet(this, true)
+            NetBlock.sync(this)
+            refreshStatus()
+            list.postDelayed({ refreshStatus() }, 1200)
+        } else {
+            skipLock = true
+            @Suppress("DEPRECATION")
+            startActivityForResult(i, 7)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 7) {
+            if (resultCode == RESULT_OK) {
+                Rules.setNet(this, true)
+                NetBlock.sync(this)
+                toast("تم تفعيل قطع الإنترنت")
+                list.postDelayed({ refreshStatus() }, 1200)
+            } else {
+                toast("لم يتم منح إذن VPN")
+            }
+            refreshStatus()
+        }
     }
 
     private fun changePin() {

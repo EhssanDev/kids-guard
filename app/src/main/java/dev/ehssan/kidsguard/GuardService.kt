@@ -11,6 +11,7 @@ class GuardService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var lastPkg: String? = null
     private var lastKick = 0L
+    private var ticks = 0
 
     private val ignore = setOf("android", "com.android.systemui")
 
@@ -25,6 +26,8 @@ class GuardService : AccessibilityService() {
     private val tick = object : Runnable {
         override fun run() {
             lastPkg?.let { check(it) }
+            ticks++
+            if (ticks % 5 == 0) NetBlock.sync(this@GuardService)
             handler.postDelayed(this, 4000)
         }
     }
@@ -33,6 +36,7 @@ class GuardService : AccessibilityService() {
         super.onServiceConnected()
         handler.removeCallbacks(tick)
         handler.postDelayed(tick, 4000)
+        NetBlock.sync(this)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
