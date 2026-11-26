@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kids Guard</string>
+    <string name="service_desc">يراقب اسم التطبيق المفتوح فقط ليُخرج منه التطبيقات التي حظرها ولي الأمر. لا يقرأ أي محتوى ولا يجمع أي بيانات.</string>
+</resources>
